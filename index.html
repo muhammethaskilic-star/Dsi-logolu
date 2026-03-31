@@ -562,22 +562,30 @@ function renderAidat(filter){
   document.getElementById('aidat-matris-wrap').style.display=isMatris?'block':'none';
   if(isMatris){renderMatrisInit();return}
 
-  // FIX 1: Bekleyen sekmesi = durum bekliyor VEYA gecikti olan ödemeler
+  // Bekleyen = kayıtlı ama ödememiş + hiç kaydı olmayan üyeler
   let data=odemeler;
   if(filter==='odendi') data=odemeler.filter(o=>o.durum==='odendi');
-  if(filter==='bekliyor') data=odemeler.filter(o=>o.durum==='bekliyor'||o.durum==='gecikti');
   if(filter==='gecikti') data=odemeler.filter(o=>o.durum==='gecikti');
+  if(filter==='bekliyor'){
+    const kayitlilar=odemeler.filter(o=>o.durum==='bekliyor'||o.durum==='gecikti');
+    const odemeYapanlar=new Set(odemeler.map(o=>o.uye));
+    const kayitsizlar=uyeler
+      .filter(u=>!odemeYapanlar.has(u.ad))
+      .map(u=>({id:'k'+u.id,uye:u.ad,donem:'—',tutar:u.aidat||500,tarih:'-',durum:'bekliyor',not_:'Ödeme kaydı yok',yontem:''}));
+    data=[...kayitlilar,...kayitsizlar];
+  }
 
   const od=odemeler.filter(o=>o.durum==='odendi').length;
   const bek=odemeler.filter(o=>o.durum==='bekliyor').length;
   const gec=odemeler.filter(o=>o.durum==='gecikti').length;
+  const kayitsizSayisi=uyeler.filter(u=>!new Set(odemeler.map(o=>o.uye)).has(u.ad)).length;
   const gelir=odemeler.filter(o=>o.durum==='odendi').reduce((s,o)=>s+(o.tutar||0),0);
   const bekT=odemeler.filter(o=>o.durum!=='odendi').reduce((s,o)=>s+(o.tutar||0),0);
   document.getElementById('aidat-stats').innerHTML=`
     <div class="stat-card stat-green"><div class="stat-label">Tahsil Edilen</div><div class="stat-value" style="font-size:20px">₺${gelir.toLocaleString('tr-TR')}</div><div class="stat-change">${od} ödeme</div></div>
     <div class="stat-card stat-red"><div class="stat-label">Bekleyen</div><div class="stat-value" style="font-size:20px">₺${bekT.toLocaleString('tr-TR')}</div><div class="stat-change">${bek+gec} kayıt</div></div>
     <div class="stat-card"><div class="stat-label">Aylık Aidat</div><div class="stat-value" style="font-size:20px">₺500</div></div>
-    <div class="stat-card stat-red"><div class="stat-label">Gecikmiş</div><div class="stat-value" style="font-size:20px">${gec}</div></div>`;
+    <div class="stat-card stat-red"><div class="stat-label">Kayıtsız Üye</div><div class="stat-value" style="font-size:20px">${kayitsizSayisi}</div><div class="stat-change">ödeme kaydı yok</div></div>`;
   document.getElementById('aidat-tbody').innerHTML=data.length?data.map(o=>`<tr>
     <td><div class="avatar-name"><div class="avatar">${initials(o.uye)}</div>${o.uye}</div></td>
     <td>${o.donem||''}</td>
@@ -585,8 +593,8 @@ function renderAidat(filter){
     <td style="color:var(--text3)">${o.tarih||'-'}</td>
     <td>${badgeForDurum(o.durum)}</td>
     <td style="color:var(--text3);font-size:12px">${o.not_||o.yontem||''}</td>
-    <td><button class="btn btn-sm btn-danger" onclick="odemeSil(${o.id})">Sil</button></td>
-  </tr>`).join(''):'<tr><td colspan="7" class="empty">Kayıt bulunamadı</td></tr>';
+    <td>${String(o.id).startsWith('k')?'':\`<button class="btn btn-sm btn-danger" onclick="odemeSil(\${o.id})">Sil</button>\`}</td>
+  </tr>`).join(''):'<tr><td colspan="7" class="empty">Bekleyen kayıt bulunamadı</td></tr>';
 }
 function switchAidatTab(el,filter){
   document.querySelectorAll('#section-aidat .tab').forEach(t=>t.classList.remove('active'));
