@@ -571,7 +571,7 @@ function renderAidat(filter){
     const odemeYapanlar=new Set(odemeler.map(o=>o.uye));
     const kayitsizlar=uyeler
       .filter(u=>!odemeYapanlar.has(u.ad))
-      .map(u=>({id:'k'+u.id,uye:u.ad,donem:'—',tutar:u.aidat||500,tarih:'-',durum:'bekliyor',not_:'Ödeme kaydı yok',yontem:''}));
+      .map(u=>({id:u.id,_kayitsiz:true,uye:u.ad,donem:'—',tutar:u.aidat||500,tarih:'-',durum:'bekliyor',not_:'Ödeme kaydı yok',yontem:''}));
     data=[...kayitlilar,...kayitsizlar];
   }
 
@@ -593,7 +593,7 @@ function renderAidat(filter){
     <td style="color:var(--text3)">${o.tarih||'-'}</td>
     <td>${badgeForDurum(o.durum)}</td>
     <td style="color:var(--text3);font-size:12px">${o.not_||o.yontem||''}</td>
-    <td>${String(o.id).startsWith('k')?'':\`<button class="btn btn-sm btn-danger" onclick="odemeSil(\${o.id})">Sil</button>\`}</td>
+    <td>${o._kayitsiz?'':'<button class="btn btn-sm btn-danger" onclick="odemeSil('+o.id+')">Sil</button>'}</td>
   </tr>`).join(''):'<tr><td colspan="7" class="empty">Bekleyen kayıt bulunamadı</td></tr>';
 }
 function switchAidatTab(el,filter){
